@@ -119,6 +119,10 @@ mapChildren func nc =
             NodeChildren (func children)
 
 
+
+-- View
+
+
 viewDocument : Model -> Document Msg
 viewDocument model =
     { title = "fmap"
@@ -159,7 +163,6 @@ viewNodeRec pos model node =
             in
             div
                 -- surrounding border
-                -- [ style "border" "0px solid grey"
                 [ style "display" "flex"
                 , style "flex-direction" "row"
                 , style "height" "100%"
@@ -192,8 +195,8 @@ viewNodeRec pos model node =
                     , style "align-self" "center"
                     , style "margin" "0.1rem 0"
                     , style "padding" "0 0.2rem"
-
-                    -- , inlineBlock
+                    , style "white-space" "nowrap"
+                    , style "font" "10px sans-serif"
                     , onClick (SelectNode node.id)
                     ]
                     [ text node.text ]
@@ -201,7 +204,7 @@ viewNodeRec pos model node =
                 -- children
                 , elementIf hasChildren smolLine
                 , div
-                    [ inlineBlock, style "display" "flex", style "flex-direction" "column" ]
+                    [ style "display" "flex", style "flex-direction" "column" ]
                     (List.indexedMap
                         (\i childNode ->
                             viewNodeRec
@@ -230,7 +233,7 @@ viewNodeRec pos model node =
 smolLine : Html Msg
 smolLine =
     div
-        [ style "width" "10px"
+        [ style "width" "6px"
         , style "border-top" "1px solid black"
         , style "align-self" "center"
         ]
@@ -283,10 +286,6 @@ keyToMsg key =
 
         _ ->
             Nop
-
-
-inlineBlock =
-    style "display" "inline-block"
 
 
 
