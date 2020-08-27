@@ -1,12 +1,14 @@
 module Main exposing (Msg(..), main, update, view)
 
 import Browser exposing (Document)
+import Browser.Dom
 import Browser.Events as Events
-import Html exposing (Html, button, div, node, text)
-import Html.Attributes exposing (classList, src, style, tabindex)
+import Html exposing (Html, button, div, input, node, text)
+import Html.Attributes exposing (autofocus, classList, id, src, style, tabindex)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
-import Unique as Unique exposing (Unique)
+import Task
+import Unique as Unique exposing (Id, Unique)
 
 
 type alias Model =
@@ -17,6 +19,10 @@ type alias Model =
 newModel : Model
 newModel =
     { root = Unique.run newNodeGen }
+
+
+
+-- Node
 
 
 type alias Node =
@@ -50,6 +56,10 @@ newNodeGen =
         Unique.unique
 
 
+
+-- Application
+
+
 main : Program () Model Msg
 main =
     Browser.document
@@ -63,6 +73,7 @@ main =
 type Msg
     = CreateChild
     | SelectNode Unique.Id
+    | ChangeNodeText Unique.Id String
     | Nop
 
 
@@ -70,13 +81,21 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         CreateChild ->
-            ( { model | root = addChildNode model.root }, Cmd.none )
+            ( { model | root = addChildNode model.root }, focusInput )
 
         SelectNode id ->
-            ( { model | root = selectNode id model.root }, Cmd.none )
+            ( { model | root = selectNode id model.root }, focusInput )
 
-        _ ->
+        ChangeNodeText id text ->
+            ( { model | root = changeNodeText id text model.root }, Cmd.none )
+
+        Nop ->
             ( model, Cmd.none )
+
+
+focusInput : Cmd Msg
+focusInput =
+    Task.attempt (always Nop) (Browser.Dom.focus nodeInputId)
 
 
 addChildNode : Node -> Node
@@ -112,11 +131,31 @@ selectNode id node =
     }
 
 
+changeNodeText : Unique.Id -> String -> Node -> Node
+changeNodeText id text node =
+    { node
+        | text =
+            if node.id == id then
+                text
+
+            else
+                node.text
+        , children = mapChildren (List.map (changeNodeText id text)) node.children
+    }
+
+
 mapChildren : (List Node -> List Node) -> NodeChildren -> NodeChildren
 mapChildren func nc =
     case nc of
         NodeChildren children ->
             NodeChildren (func children)
+
+
+mapUnwrapChildren : (Node -> a) -> NodeChildren -> List a
+mapUnwrapChildren func nc =
+    case nc of
+        NodeChildren children ->
+            List.map func children
 
 
 
@@ -175,22 +214,29 @@ viewNodeRec pos node =
 
 viewNodeContent : Node -> Html Msg
 viewNodeContent node =
-    div
-        [ style "border"
-            (if node.selected then
-                "1px solid red"
+    let
+        s =
+            [ style "border"
+                (if node.selected then
+                    "1px solid red"
 
-             else
-                "1px solid black"
-            )
-        , style "align-self" "center"
-        , style "margin" "0.1rem 0"
-        , style "padding" "0 0.2rem"
-        , style "white-space" "nowrap"
-        , style "font" "10px sans-serif"
-        , onClick (SelectNode node.id)
-        ]
-        [ text node.text ]
+                 else
+                    "1px solid black"
+                )
+            , style "align-self" "center"
+            , style "margin" "0.1rem 0"
+            , style "padding" "0 0.2rem"
+            , style "white-space" "nowrap"
+            , style "font" "15px sans-serif"
+            , onClick (SelectNode node.id)
+            , Html.Events.onInput (ChangeNodeText node.id)
+            ]
+    in
+    if node.selected then
+        Html.input (s ++ [ id nodeInputId ]) []
+
+    else
+        div s [ text node.text ]
 
 
 viewNodeChildren : List Node -> Html Msg
@@ -297,6 +343,10 @@ keyToMsg key =
             Nop
 
 
+nodeInputId =
+    "node-input"
+
+
 
 -- HELPERS
 
@@ -327,3 +377,13 @@ elementIf cond el =
 
     else
         div [] []
+
+
+collapseMaybe : Maybe (Maybe a) -> Maybe a
+collapseMaybe val =
+    case val of
+        Just inner ->
+            inner
+
+        _ ->
+            Nothing
