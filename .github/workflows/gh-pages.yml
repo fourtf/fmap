@@ -33,7 +33,6 @@ jobs:
       # hack for deploy action
       - run: |
           mv prod xd
-          mkdir prod
           cp -a xd prod
 
       - name: Deploy 🚀
