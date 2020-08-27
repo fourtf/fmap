@@ -87,12 +87,8 @@ addChildNode node =
 addChildNodeRec : Node -> NodeGen
 addChildNodeRec node =
     let
-        nodes =
-            if node.selected then
-                [ newNodeGen ]
-
-            else
-                []
+        newNode =
+            maybeIf node.selected newNodeGen
     in
     case node.children of
         NodeChildren nodeChildren ->
@@ -105,12 +101,7 @@ addChildNodeRec node =
                     }
                 )
                 Unique.unique
-                (Unique.sequence <| (List.map addChildNodeRec nodeChildren ++ nodes))
-
-
-withId : Node -> Unique.Id -> Node
-withId node id =
-    { node | id = id }
+                (Unique.sequence <| (List.map addChildNodeRec nodeChildren ++ maybeToList newNode))
 
 
 selectNode : Unique.Id -> Node -> Node
@@ -142,17 +133,55 @@ view model =
     div [ style "overflow-x" "auto" ] [ viewNode model model.root ]
 
 
+type NodePosition
+    = First
+    | Last
+    | Middle
+    | OnlyChild
+    | Root
+
+
 viewNode : Model -> Node -> Html Msg
-viewNode model node =
+viewNode =
+    viewNodeRec Root
+
+
+viewNodeRec : NodePosition -> Model -> Node -> Html Msg
+viewNodeRec pos model node =
     case node.children of
         NodeChildren children ->
+            let
+                hasChildren =
+                    List.length children /= 0
+
+                isRoot =
+                    pos == Root
+            in
             div
                 -- surrounding border
-                [ style "border" "1px solid grey"
-                , inlineBlock
+                -- [ style "border" "0px solid grey"
+                [ style "display" "flex"
+                , style "flex-direction" "row"
+                , style "height" "100%"
                 ]
                 -- border around the object
-                [ div
+                [ case pos of
+                    First ->
+                        bottomLine
+
+                    Last ->
+                        topLine
+
+                    Middle ->
+                        middleLine
+
+                    OnlyChild ->
+                        div [] []
+
+                    Root ->
+                        div [] []
+                , elementIf (not isRoot) smolLine
+                , div
                     [ style "border"
                         (if node.selected then
                             "1px solid red"
@@ -160,19 +189,85 @@ viewNode model node =
                          else
                             "1px solid black"
                         )
-                    , inlineBlock
+                    , style "align-self" "center"
+                    , style "margin" "0.1rem 0"
+                    , style "padding" "0 0.2rem"
+
+                    -- , inlineBlock
                     , onClick (SelectNode node.id)
                     ]
                     [ text node.text ]
 
                 -- children
+                , elementIf hasChildren smolLine
                 , div
-                    [ inlineBlock ]
-                    (List.map
-                        (viewNode model)
+                    [ inlineBlock, style "display" "flex", style "flex-direction" "column" ]
+                    (List.indexedMap
+                        (\i childNode ->
+                            viewNodeRec
+                                (if List.length children == 1 then
+                                    OnlyChild
+
+                                 else if i == 0 then
+                                    First
+
+                                 else if i == List.length children - 1 then
+                                    Last
+
+                                 else
+                                    Middle
+                                )
+                                model
+                                childNode
+                        )
                         children
                     )
                 ]
+
+
+{-| Small horizontal line.
+-}
+smolLine : Html Msg
+smolLine =
+    div
+        [ style "width" "10px"
+        , style "border-top" "1px solid black"
+        , style "align-self" "center"
+        ]
+        []
+
+
+{-| Vertical line but only lower half.
+-}
+bottomLine : Html Msg
+bottomLine =
+    div
+        [ style "border-left" "1px solid black"
+        , style "height" "calc(50% + 0.5px)"
+        , style "align-self" "flex-end"
+        ]
+        []
+
+
+{-| Vertical line but only upper half.
+-}
+topLine : Html Msg
+topLine =
+    div
+        [ style "border-left" "1px solid black"
+        , style "height" "calc(50% + 0.5px)"
+        ]
+        []
+
+
+{-| A full vertical line.
+-}
+middleLine : Html Msg
+middleLine =
+    div
+        [ style "border-left" "1px solid black"
+        ]
+        []
 
 
 onKeyPress : Decode.Decoder Msg
@@ -192,3 +287,35 @@ keyToMsg key =
 
 inlineBlock =
     style "display" "inline-block"
+
+
+
+-- HELPERS
+
+
+maybeToList : Maybe a -> List a
+maybeToList maybe =
+    case maybe of
+        Just val ->
+            [ val ]
+
+        _ ->
+            []
+
+
+maybeIf : Bool -> a -> Maybe a
+maybeIf cond x =
+    if cond then
+        Just x
+
+    else
+        Nothing
+
+
+elementIf : Bool -> Html msg -> Html msg
+elementIf cond el =
+    if cond then
+        el
+
+    else
+        div [] []
