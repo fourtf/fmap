@@ -29,6 +29,12 @@ jobs:
       - run: npm install uglify-js -g
         
       - run: sh ./build_prod.sh
+      
+      # hack for deploy action
+      - run: |
+          mv prod xd
+          mkdir prod
+          cp -a xd prod
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@3.5.9
