@@ -29,9 +29,9 @@ jobs:
       - run: npm install uglify-js -g
         
       # hack
-      - run: |
-          mv prod xd
-          cp -a xd prod
+      #- run: |
+      #    mv prod xd
+      #    cp -a xd prod
         
       - run: sh ./build_prod.sh
 
