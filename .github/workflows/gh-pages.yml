@@ -27,7 +27,10 @@ jobs:
       - uses: actions/setup-node@v1
           
       - run: npm install uglify-js -g
+        
       - run: sh ./build_prod.sh
+        env:
+          CI: true
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@3.5.9
