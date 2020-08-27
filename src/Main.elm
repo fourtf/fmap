@@ -132,8 +132,6 @@ viewDocument model =
 
 view : Model -> Html Msg
 view model =
-    -- let root = Unique.run <| model.root in
-    -- div [ style "overflow-x" "auto" ] [ viewNode model root ]
     div [ style "overflow-x" "auto" ] [ viewNode model.root ]
 
 
@@ -162,17 +160,14 @@ viewNodeRec pos node =
                     pos == Root
             in
             div
-                -- surrounding border
                 [ style "display" "flex"
                 , style "flex-direction" "row"
                 , style "height" "100%"
                 ]
-                -- border around the object
+                -- render lines, content, children
                 [ lineForPos pos
                 , elementIf (not isRoot) smolLine
                 , viewNodeContent node
-
-                -- children
                 , elementIf hasChildren smolLine
                 , viewNodeChildren children
                 ]
