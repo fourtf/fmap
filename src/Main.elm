@@ -134,7 +134,7 @@ view : Model -> Html Msg
 view model =
     -- let root = Unique.run <| model.root in
     -- div [ style "overflow-x" "auto" ] [ viewNode model root ]
-    div [ style "overflow-x" "auto" ] [ viewNode model model.root ]
+    div [ style "overflow-x" "auto" ] [ viewNode model.root ]
 
 
 type NodePosition
@@ -145,13 +145,13 @@ type NodePosition
     | Root
 
 
-viewNode : Model -> Node -> Html Msg
+viewNode : Node -> Html Msg
 viewNode =
     viewNodeRec Root
 
 
-viewNodeRec : NodePosition -> Model -> Node -> Html Msg
-viewNodeRec pos model node =
+viewNodeRec : NodePosition -> Node -> Html Msg
+viewNodeRec pos node =
     case node.children of
         NodeChildren children ->
             let
@@ -168,64 +168,78 @@ viewNodeRec pos model node =
                 , style "height" "100%"
                 ]
                 -- border around the object
-                [ case pos of
-                    First ->
-                        bottomLine
-
-                    Last ->
-                        topLine
-
-                    Middle ->
-                        middleLine
-
-                    OnlyChild ->
-                        div [] []
-
-                    Root ->
-                        div [] []
+                [ lineForPos pos
                 , elementIf (not isRoot) smolLine
-                , div
-                    [ style "border"
-                        (if node.selected then
-                            "1px solid red"
-
-                         else
-                            "1px solid black"
-                        )
-                    , style "align-self" "center"
-                    , style "margin" "0.1rem 0"
-                    , style "padding" "0 0.2rem"
-                    , style "white-space" "nowrap"
-                    , style "font" "10px sans-serif"
-                    , onClick (SelectNode node.id)
-                    ]
-                    [ text node.text ]
+                , viewNodeContent node
 
                 -- children
                 , elementIf hasChildren smolLine
-                , div
-                    [ style "display" "flex", style "flex-direction" "column" ]
-                    (List.indexedMap
-                        (\i childNode ->
-                            viewNodeRec
-                                (if List.length children == 1 then
-                                    OnlyChild
-
-                                 else if i == 0 then
-                                    First
-
-                                 else if i == List.length children - 1 then
-                                    Last
-
-                                 else
-                                    Middle
-                                )
-                                model
-                                childNode
-                        )
-                        children
-                    )
+                , viewNodeChildren children
                 ]
+
+
+viewNodeContent : Node -> Html Msg
+viewNodeContent node =
+    div
+        [ style "border"
+            (if node.selected then
+                "1px solid red"
+
+             else
+                "1px solid black"
+            )
+        , style "align-self" "center"
+        , style "margin" "0.1rem 0"
+        , style "padding" "0 0.2rem"
+        , style "white-space" "nowrap"
+        , style "font" "10px sans-serif"
+        , onClick (SelectNode node.id)
+        ]
+        [ text node.text ]
+
+
+viewNodeChildren : List Node -> Html Msg
+viewNodeChildren children =
+    div
+        [ style "display" "flex", style "flex-direction" "column" ]
+        (List.indexedMap
+            (\i childNode ->
+                viewNodeRec
+                    (if List.length children == 1 then
+                        OnlyChild
+
+                     else if i == 0 then
+                        First
+
+                     else if i == List.length children - 1 then
+                        Last
+
+                     else
+                        Middle
+                    )
+                    childNode
+            )
+            children
+        )
+
+
+lineForPos : NodePosition -> Html Msg
+lineForPos pos =
+    case pos of
+        First ->
+            bottomLine
+
+        Last ->
+            topLine
+
+        Middle ->
+            middleLine
+
+        OnlyChild ->
+            div [] []
+
+        Root ->
+            div [] []
 
 
 {-| Small horizontal line.
